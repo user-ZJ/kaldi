@@ -8,14 +8,17 @@
 #include "feat/feature-mfcc.h"
 #include "feat/pitch-functions.h"
 #include "feat/wave-reader.h"
-#include "featlibs/kaldi-featlibs.h"
-#include "online2libs/kaldi-online2libs.h"
-#include "nnet3libs/kaldi-nnet3libs.h"
+#include "feat/kaldi-featlibs.h"
+#if HAVE_CUDA == 1
+#include "cudafeat/kaldi-cudafeatlibs.h"
+#endif
+#include "online2/kaldi-online2libs.h"
+#include "nnet3/kaldi-nnet3libs.h"
 #include "online2/online-ivector-feature.h"
 #include "nnet3/am-nnet-simple.h"
 #include "nnet3/nnet-am-decodable-simple.h"
 #include "nnet3/nnet-utils.h"
-#include "latlibs/kaldi-latlibs.h"
+#include "lat/kaldi-latlibs.h"
 
 using namespace kaldi; 
 using namespace kaldi::nnet3; 

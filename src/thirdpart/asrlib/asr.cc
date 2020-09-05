@@ -31,13 +31,13 @@ int ASRRecog::initialize(const std::string &config,int gpu_id){
 
   pitch_opts.samp_freq = 16000;
 
-  ivector_opts.cmvn_config_rxfilename = "/home/zack/sourceCode/kaldi-master/src/thirdpart/configure/online_cmvn.conf";
+  ivector_opts.cmvn_config_rxfilename = "/home/zack/sourceCode/kaldi-modify/src/thirdpart/configure/online_cmvn.conf";
   ivector_opts.ivector_period =10;
-  ivector_opts.splice_config_rxfilename="/home/zack/sourceCode/kaldi-master/src/thirdpart/configure/splice.conf";
-  ivector_opts.lda_mat_rxfilename="/home/zack/sourceCode/kaldi-master/src/thirdpart/model/asr/final.mat";
-  ivector_opts.global_cmvn_stats_rxfilename="/home/zack/sourceCode/kaldi-master/src/thirdpart/model/asr/global_cmvn.stats";
-  ivector_opts.diag_ubm_rxfilename="/home/zack/sourceCode/kaldi-master/src/thirdpart/model/asr/final.dubm";
-  ivector_opts.ivector_extractor_rxfilename="/home/zack/sourceCode/kaldi-master/src/thirdpart/model/asr/final.ie";
+  ivector_opts.splice_config_rxfilename="/home/zack/sourceCode/kaldi-modify/src/thirdpart/configure/splice.conf";
+  ivector_opts.lda_mat_rxfilename="/home/zack/sourceCode/kaldi-modify/src/thirdpart/model/asr/final.mat";
+  ivector_opts.global_cmvn_stats_rxfilename="/home/zack/sourceCode/kaldi-modify/src/thirdpart/model/asr/global_cmvn.stats";
+  ivector_opts.diag_ubm_rxfilename="/home/zack/sourceCode/kaldi-modify/src/thirdpart/model/asr/final.dubm";
+  ivector_opts.ivector_extractor_rxfilename="/home/zack/sourceCode/kaldi-modify/src/thirdpart/model/asr/final.ie";
   ivector_opts.num_gselect=5;
   ivector_opts.min_post=0.025;
   ivector_opts.posterior_scale=0.1;
@@ -47,6 +47,10 @@ int ASRRecog::initialize(const std::string &config,int gpu_id){
 
   ivector_model=new OnlineIvectorExtractionInfo(ivector_opts);
 
+#if HAVE_CUDA == 1
+  CuDevice::Instantiate().SelectGpuId("yes");
+  CuDevice::Instantiate().AllowMultithreading();
+#endif
 
   decoder_opts.max_active = 7000;
   decoder_opts.min_active = 200;
@@ -61,9 +65,9 @@ int ASRRecog::initialize(const std::string &config,int gpu_id){
   compute_opts.extra_right_context_final = -1;
   compute_opts.acoustic_scale = 1.0;
 
-  std::string word_syms_filename="/home/zack/sourceCode/kaldi-master/src/thirdpart/model/asr/words.txt";
-  std::string fst_filename="/home/zack/sourceCode/kaldi-master/src/thirdpart/model/asr/HCLG.fst";
-  std::string asr_model_filename="/home/zack/sourceCode/kaldi-master/src/thirdpart/model/asr/final.mdl";
+  std::string word_syms_filename="/home/zack/sourceCode/kaldi-modify/src/thirdpart/model/asr/words.txt";
+  std::string fst_filename="/home/zack/sourceCode/kaldi-modify/src/thirdpart/model/asr/HCLG.fst";
+  std::string asr_model_filename="/home/zack/sourceCode/kaldi-modify/src/thirdpart/model/asr/final.mdl";
   word_syms = fst::SymbolTable::ReadText(word_syms_filename);
   if(word_syms==NULL) KALDI_ERR<<"read word syms "<<word_syms_filename<<" failed";
   decoder_fst=fst::ReadFstKaldiGeneric(fst_filename);
@@ -109,7 +113,11 @@ std::string ASRRecog::predict(std::istream &wav_stream,std::string file_id){
   map_ss map_pro_pitch,map_latgen_input,map_apply_cmvn_input,map_cmvn_stats_input,map_ivector_input;
 
   vss_mfcc_output.push_back(StrSS(file_id,new std::stringstream));
+#if HAVE_CUDA == 1
+  ret = compute_mfcc_feats_cuda(wave_data,file_id,&vss_mfcc_output,mfcc_opts);
+#else
   ret = compute_mfcc_feats(wave_data,file_id,&vss_mfcc_output,mfcc_opts);
+#endif
   if(ret){
     KALDI_ERR<<"compute mfcc failed";
     return "Error:compute mfcc failed";
